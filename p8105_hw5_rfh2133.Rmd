@@ -14,3 +14,42 @@ knitr::opts_chunk$set(
   warning = FALSE,
   message = FALSE
 )
+```
+## Problem 1
+```{r birthday_function}
+birthday_sim = function(n) {
+  
+  birthdays = sample(1:365, size = n, replace = TRUE)
+  
+  any(duplicated(birthdays))
+}
+```
+
+This function randomly assigns birthdays to a group of `n` people and returns `TRUE` if at least two people share the same birthday.
+
+```{r birthday_simulations}
+birthday_results =
+  tibble(group_size = 2:50) |>
+  mutate(
+    probability = map_dbl(
+      group_size,
+      \(n) mean(replicate(10000, birthday_sim(n)))
+    )
+  )
+
+birthday_results
+```
+```{r birthday_plot}
+birthday_results |>
+  ggplot(aes(x = group_size, y = probability)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Probability of a Shared Birthday by Group Size",
+    x = "Group Size",
+    y = "Probability of at Least One Shared Birthday"
+  ) +
+  theme_minimal()
+```
+
+As the number of people in the group increases, the probability that at least two people share a birthday increases rapidly. For small groups, a shared birthday is relatively unlikely, but the probability rises substantially as the group size approaches 20 to 30 people and continues increasing for larger groups.

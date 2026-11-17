@@ -1,0 +1,16 @@
+---
+title: "P8105 Homework 5"
+author: "Rezwana Habib"
+date: "2026-11-17"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(broom)
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)

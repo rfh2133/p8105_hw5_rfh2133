@@ -53,3 +53,63 @@ birthday_results |>
 ```
 
 As the number of people in the group increases, the probability that at least two people share a birthday increases rapidly. For small groups, a shared birthday is relatively unlikely, but the probability rises substantially as the group size approaches 20 to 30 people and continues increasing for larger groups.
+
+## Problem 2
+
+```{r longitudinal_import}
+longitudinal_files =
+  tibble(
+    file_name = list.files("data")
+  )
+
+longitudinal_data =
+  longitudinal_files |>
+  mutate(
+    data = map(
+      file_name,
+      \(x) read_csv(file.path("data", x), show_col_types = FALSE)
+    )
+  ) |>
+  unnest(data) |>
+  mutate(
+    subject_id = str_remove(file_name, "\\.csv$"),
+    arm = case_when(
+      str_starts(file_name, "con") ~ "Control",
+      str_starts(file_name, "exp") ~ "Experimental"
+    )
+  ) |>
+  select(subject_id, arm, everything(), -file_name) |>
+  pivot_longer(
+    cols = starts_with("week"),
+    names_to = "week",
+    values_to = "observation"
+  ) |>
+  mutate(
+    week = parse_number(week)
+  )
+
+longitudinal_data
+```
+
+```{r longitudinal_plot}
+longitudinal_data |>
+  ggplot(
+    aes(
+      x = week,
+      y = observation,
+      group = subject_id,
+      color = arm
+    )
+  ) +
+  geom_line(alpha = 0.7) +
+  geom_point() +
+  labs(
+    title = "Longitudinal Observations by Treatment Group",
+    x = "Week",
+    y = "Observation",
+    color = "Group"
+  ) +
+  theme_minimal()
+```
+
+The control and experimental groups show different patterns over time. Observations for participants in the experimental group generally increase across the study period, while observations in the control group remain relatively stable. This suggests that the experimental condition may be associated with increasing outcome values over time.

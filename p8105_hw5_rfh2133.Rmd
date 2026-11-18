@@ -113,3 +113,111 @@ longitudinal_data |>
 ```
 
 The control and experimental groups show different patterns over time. Observations for participants in the experimental group generally increase across the study period, while observations in the control group remain relatively stable. This suggests that the experimental condition may be associated with increasing outcome values over time.
+
+## Problem 3
+```{r ttest_function}
+sim_ttest = function(mu) {
+  
+  sample_data = rnorm(
+    n = 30,
+    mean = mu,
+    sd = 5
+  )
+  
+  t.test(sample_data, mu = 0) |>
+    broom::tidy() |>
+    select(estimate, p.value)
+}
+```
+```{r ttest_simulations}
+set.seed(2026)
+
+simulation_results =
+  expand_grid(
+    mu = 0:6,
+    iteration = 1:5000
+  ) |>
+  mutate(
+    results = map(mu, sim_ttest)
+  ) |>
+  unnest(results)
+
+simulation_results
+```
+```{r power_results}
+power_results =
+  simulation_results |>
+  group_by(mu) |>
+  summarize(
+    power = mean(p.value < 0.05)
+  )
+
+power_results
+```
+
+```{r power_plot}
+power_results |>
+  ggplot(aes(x = mu, y = power)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Power of the One-Sample t-Test",
+    x = "True Mean",
+    y = "Power"
+  ) +
+  theme_minimal()
+```
+
+As the true mean increases farther from the null value of 0, the power of the test increases. When the true mean is close to 0, the test is less likely to reject the null hypothesis, while larger effect sizes are detected much more frequently.
+
+```{r mean_estimates}
+mean_estimates =
+  simulation_results |>
+  group_by(mu) |>
+  summarize(
+    average_estimate = mean(estimate),
+    average_estimate_rejected = mean(estimate[p.value < 0.05]),
+    .groups = "drop"
+  )
+
+mean_estimates
+```
+
+```{r mean_estimate_plot}
+mean_estimates |>
+  pivot_longer(
+    cols = c(average_estimate, average_estimate_rejected),
+    names_to = "estimate_type",
+    values_to = "mean_estimate"
+  ) |>
+  mutate(
+    estimate_type = recode(
+      estimate_type,
+      average_estimate = "All Samples",
+      average_estimate_rejected = "Rejected Null Only"
+    )
+  ) |>
+  ggplot(
+    aes(
+      x = mu,
+      y = mean_estimate,
+      color = estimate_type
+    )
+  ) +
+  geom_line() +
+  geom_point() +
+  geom_abline(
+    slope = 1,
+    intercept = 0,
+    linetype = "dashed"
+  ) +
+  labs(
+    title = "Average Estimated Mean by True Mean",
+    x = "True Mean",
+    y = "Average Estimated Mean",
+    color = "Samples Included"
+  ) +
+  theme_minimal()
+```
+
+Across all simulated samples, the average estimated mean is approximately equal to the true mean, which is consistent with the sample mean being an unbiased estimator. However, among samples in which the null hypothesis is rejected, the average estimated mean can differ from the true mean, particularly when the true effect is small and power is low. When only statistically significant results are selected, samples with estimates farther from the null value are more likely to be included. As the true mean increases and power approaches 1, nearly all samples reject the null hypothesis, so the average estimate among rejected tests becomes much closer to the true mean.
